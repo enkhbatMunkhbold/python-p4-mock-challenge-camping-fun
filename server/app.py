@@ -17,13 +17,30 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.json.compact = False
 
 migrate = Migrate(app, db)
-
+api = Api(app)
 db.init_app(app)
-
 
 @app.route('/')
 def home():
     return ''
+
+class Campers(Resource):
+    def get(self):
+        campers = [camper.to_dict() for camper in Camper.query.all()]
+        return make_response( jsonify(campers), 200 )
+
+api.add_resource(Campers, '/campers', endpoint='campers')
+
+class CampersByID(Resource):
+    def get(self, id):
+        camper = Camper.query.filter(Camper.id == id).first()
+
+        # import ipdb; ipdb.set_trace()
+        if not camper:
+            return make_response( jsonify({ 'error': 'Camper not found' }), 404 )
+        return make_response( jsonify(camper.to_dict()), 200)
+    
+api.add_resource(CampersByID, '/campers/<int:id>')
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
