@@ -20,15 +20,14 @@ db = SQLAlchemy(metadata=metadata)
 class Activity(db.Model, SerializerMixin):
     __tablename__ = 'activities'
 
-    serialize_rules = ('-signups.activity',)
-
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     difficulty = db.Column(db.Integer)
 
     signups = db.relationship('Signup', back_populates='activity', cascade='all, delete-orphan')
     campers = association_proxy('signups', 'camper', creator=lambda camper_obj: Signup(camper=camper_obj))
-    
+    serialize_rules = ('-signups.activity',)
+
     def __repr__(self):
         return f'<Activity {self.id}: {self.name}>'
 
@@ -36,42 +35,32 @@ class Activity(db.Model, SerializerMixin):
 class Camper(db.Model, SerializerMixin):
     __tablename__ = 'campers'
 
-    serialize_rules = ('-signups.camper',)
-
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String, nullable=False)
     age = db.Column(db.Integer)
 
     signups = db.relationship('Signup', back_populates='camper', cascade='all, delete-orphan')
     activities = association_proxy('signups', 'activity', creator=lambda activity_obj: Signup(activity=activity_obj))
+    serialize_rules = ('-signups',)
 
     @validates('name')
-    def validate_name(self, key, name):
-        if not name:
-            raise ValueError('Camper should have name.')
+    def validate_name(self, _, name):
+        if not name or len(name) < 1:
+            raise ValueError('Camper should have a name.')
         return name
     
     @validates('age')
-    def validate_age(self, key, age):
-        if age < 8 or age > 18:
+    def validate_age(self, _, age):
+        if not 8 <= age <= 18:
             raise ValueError("Camper's age must be between 8 and 18.")
         return age
-    
-    def to_dict(self):
-        return{
-            "id": self.id,
-            "name": self.name,
-            "age": self.age
-        }
         
     def __repr__(self):
-        return f'<Camper id: {self.id}, name: {self.name}, age: {self.age} - {self.signups}>'
+        return f'<Camper id: {self.id}, name: {self.name}, age: {self.age}>'
 
 
 class Signup(db.Model, SerializerMixin):
     __tablename__ = 'signups'
-
-    serialize_rules = ('-activity.signups', '-camper.signups',)
 
     id = db.Column(db.Integer, primary_key=True)
     time = db.Column(db.Integer)
@@ -80,10 +69,12 @@ class Signup(db.Model, SerializerMixin):
 
     activity = db.relationship('Activity', back_populates='signups')
     camper = db.relationship('Camper', back_populates='signups')
+
+    serialize_rules = ('-activity.signups', '-camper.signups',)
     
     @validates('time')
-    def validate_time(self, key, time):
-        if time < 0 or time > 23:
+    def validate_time(self, _, time):
+        if time not in range(24):
             raise ValueError('Time can only be between 0 and 23.')
         return time
     

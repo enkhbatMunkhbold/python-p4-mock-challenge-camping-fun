@@ -49,7 +49,7 @@ class TestApp:
             response = app.test_client().get(f'/campers/{camper.id}').json
             assert response['name'] == camper.name
             assert response['age'] == camper.age
-            assert response['signups']
+            assert response['signups'] 
 
     def test_returns_404_if_no_camper(self):
         '''returns an error message and 404 status code when a camper is searched by a non-existent ID.'''
